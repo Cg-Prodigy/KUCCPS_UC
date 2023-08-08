@@ -1,17 +1,15 @@
-from pprint import pprint
 from bs4 import BeautifulSoup
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-
-
+import json
+import time
 options=Options()
 options.add_argument("--headless")
 client=Chrome()
 client.get(url="https://students.kuccps.net/institutions/")
 University_data=[]
 while True:
-    start=2
     soup=BeautifulSoup(client.page_source,"html.parser")
     root=soup.find("div",id="page-wrapper").find("div",class_="white-box").find("table",class_="table table-hover table-condensed small dataTable no-footer")
     t_head=root.find("thead").find_all("th")
@@ -36,15 +34,25 @@ while True:
             data_dict["Courses"]=course_list
         except:
             data_dict["Courses"]=["None declared"]
+        print(data_dict["Name"])
         University_data.append(data_dict)
-    pagination=client.find_elements(By.CSS_SELECTOR,"ul.pagination li")
-    for i in range(len(pagination)):
-        if i==start:
-            initial_class="paginate_button"
-            new_class="paginate_button active"
-            client.execute_script("arguments[0].setAttribute('class',arguments[1])",pagination[i-1],initial_class)
-            client.execute_script("arguments[0].setAttribute('class',arguments[1])",pagination[i],new_class)
-            start+=1
+    try:
+        li_active=client.find_element(By.CSS_SELECTOR,"ul.pagination li.paginate_button.active")
+        next_li=li_active.find_element(By.XPATH,"./following-sibling::li[1]")
+        a=next_li.find_element(By.TAG_NAME,"a")
+        a.click()
+        time.sleep(3)
+    except:
         break
-    if start==17:
-        break
+college=[]
+university=[]
+for inst in University_data:
+    if inst["Category"]=="College":
+        college.append(inst)
+    else:
+        university.append(inst)
+
+with open("Colleges.json","w") as file:
+    json.dump(college,file)
+with open("universities.json","w") as file:
+    json.dump(university,file)
