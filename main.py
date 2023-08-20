@@ -3,13 +3,15 @@ from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 import json
+from pprint import pprint
 import time
 options=Options()
 options.add_argument("--headless")
 client=Chrome()
 client.get(url="https://students.kuccps.net/institutions/")
-University_data=[]
+university_data={}
 while True:
+    last_inst=None
     soup=BeautifulSoup(client.page_source,"html.parser")
     root=soup.find("div",id="page-wrapper").find("div",class_="white-box").find("table",class_="table table-hover table-condensed small dataTable no-footer")
     t_head=root.find("thead").find_all("th")
@@ -34,25 +36,33 @@ while True:
             data_dict["Courses"]=course_list
         except:
             data_dict["Courses"]=["None declared"]
-        print(data_dict["Name"])
-        University_data.append(data_dict)
+        inst_name=data_dict["Name"]
+        last_inst=inst_name
+        data_dict.pop("Name")
+        university_data[inst_name]=data_dict
+        print(inst_name)
+    count=0
     try:
         li_active=client.find_element(By.CSS_SELECTOR,"ul.pagination li.paginate_button.active")
         next_li=li_active.find_element(By.XPATH,"./following-sibling::li[1]")
         a=next_li.find_element(By.TAG_NAME,"a")
         a.click()
         time.sleep(3)
-    except:
+    except Exception as e:
+        pass
+    if inst_name=="ZIWA TECHNICAL TRAINING INSTITUTE":
         break
-college=[]
-university=[]
-for inst in University_data:
-    if inst["Category"]=="College":
-        college.append(inst)
-    else:
-        university.append(inst)
 
-with open("Colleges.json","w") as file:
-    json.dump(college,file)
+uni={}
+colle={}
+for inst in university_data:
+    if university_data[inst]["Category"]=="University":
+        uni[inst]=university_data[inst]
+    else:
+        colle[inst]=university_data[inst]
+
+# write data to file
 with open("universities.json","w") as file:
-    json.dump(university,file)
+    json.dump(uni,file)
+with open("colleges.json","w") as file:
+    json.dump(colle,file)
